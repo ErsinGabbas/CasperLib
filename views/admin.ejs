@@ -1,0 +1,144 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Admin Dashboard</title>
+    <link rel="stylesheet" href="../public/CSS/style.css">
+</head>
+<body>
+<h1>Library Admin Panel</h1>
+
+<h2>User Management:</h2>
+
+<h3>Add New User:</h3>
+<form id="addUserForm">
+    <label for="username">Username:</label>
+    <input type="text" id="username" name="username" required><br>
+    <label for="password">Password:</label>
+    <input type="text" id="password" name="password" required><br>
+    <label for="role">Role:</label>
+    <select id="role" name="role" required>
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+    </select><br>
+
+    <button type="button">Add</button>
+</form>
+
+<h3>Delete User:</h3>
+<form id="deleteUserForm">
+    <label for="usernameToDelete">Name of User to Delete:</label>
+    <input type="username" id="usernameToDelete" name="usernameToDelete" required><br>
+    <button type="submit">Delete</button>
+</form>
+
+<h3>Statistics:</h3>
+<p id="statistics"></p>
+
+<script>
+    const addUserForm = document.getElementById('addUserForm');
+    const deleteUserForm = document.getElementById('deleteUserForm');
+    const statisticsElement = document.getElementById('statistics');
+    let statisticsData = {
+        totalUsers: 100,
+        admins: 2
+    };
+
+    async function addUser(userData) {
+        try {
+            const response = await fetch('/addUser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+            if (response.ok) {
+                console.log('User added successfully!');
+                updateStatistics('totalUsers', 1);
+            } else {
+                console.error('Failed to add user');
+            }
+        } catch (error) {
+            console.error('Error adding user:', error);
+        }
+    }
+
+    async function deleteUser(emailToDelete) {
+        try {
+            const response = await fetch('/deleteUser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email: emailToDelete })
+            });
+            if (response.ok) {
+                console.log('User deleted successfully!');
+                updateStatistics('totalUsers', -1);
+            } else {
+                console.error('Failed to delete user');
+            }
+        } catch (error) {
+            console.error('Error deleting user:', error);
+        }
+    }
+
+    addUserForm.addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(addUserForm);
+        const userData = Object.fromEntries(formData.entries());
+
+        await addUser(userData);
+        console.log('New user:', userData);
+    });
+
+    deleteUserForm.addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const emailToDelete = deleteUserForm.querySelector('#emailToDelete').value;
+
+        await deleteUser(emailToDelete);
+        console.log('Delete user with email:', emailToDelete);
+    });
+
+    function updateStatistics(statistic, value) {
+        statisticsData[statistic] += value;
+        updateStatisticsUI();
+    }
+
+    function updateStatisticsUI() {
+        statisticsElement.innerHTML = `Total Users: ${statisticsData.totalUsers}<br>
+                                Admins: ${statisticsData.admins}`;
+    }
+
+    function fetchUserStatistics() {
+        return fetch('/userStatistics')
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Failed to fetch user statistics');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching user statistics:', error);
+            });
+    }
+
+    async function updateStatisticsFromServer() {
+        const userStatistics = await fetchUserStatistics();
+        if (userStatistics) {
+            statisticsData.totalUsers = userStatistics.totalUsers;
+            statisticsData.admins = userStatistics.admins;
+            updateStatisticsUI();
+        }
+    }
+
+    updateStatisticsFromServer();
+
+    updateStatisticsUI();
+</script>
+</body>
+</html>
